@@ -35,10 +35,22 @@ router.post("/saveUser", async (req, res) => {
       await user.save();
     }
 
+    // Return the user data to the client
     res.status(200).json({ message: "User saved successfully", user });
   } catch (error) {
     console.error("Error verifying token:", error);
-    res.status(401).json({ message: "Invalid or expired token" });
+
+    // Differentiate error types to send appropriate status codes and messages
+    if (error.code === 'auth/argument-error') {
+      return res.status(400).json({ message: "Invalid token format" });
+    }
+    
+    if (error.code === 'auth/id-token-expired') {
+      return res.status(401).json({ message: "Token has expired" });
+    }
+
+    // Generic error message for any other issues
+    res.status(500).json({ message: "Failed to verify or save user", error: error.message });
   }
 });
 

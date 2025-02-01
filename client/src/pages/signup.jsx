@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js'; // Custom hook to handle authentication
-
+import { auth, GoogleAuthProvider, signInWithPopup } from '../firebase';
 const Signup = () => {
   const navigate = useNavigate();
   const { createUserWithEmailAndPassword, user, sendTokenToBackend, signUpError, idToken, signInWithGoogle, googleUser, googleLoading, googleError } = useAuth();
@@ -11,7 +11,6 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false); // Add loading state to manage signup process
   
-
   // Validate email and password
   const validateForm = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,6 +29,11 @@ const Signup = () => {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+  
+    // Validate form
+    if (!validateForm()) return;
+  
+    setLoading(true); // Start loading
   
     try {
       // Create user
@@ -57,22 +61,26 @@ const Signup = () => {
       setLoading(false);
     }
   };
-  
-  
 
   const handleGoogleSignup = async () => {
     setLoading(true); // Start loading
     try {
-      await signInWithGoogle();
-      await sendTokenToBackend(); // Send the token to the backend after Google signup
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth,provider); // Use the pop-up method
+      const user = result.user; // Get the user after successful Google sign-in
+      console.log("Google User:", user); // Log the user information for debugging
+      const token = await user.getIdToken(); // Get the Firebase ID Token
+      console.log("Firebase Token:", token); // Log the token for debugging
+      await sendTokenToBackend(token); // Send the token to the backend after Google sign-up
       navigate("/dashboard"); // Redirect to dashboard after successful signup
     } catch (err) {
-      setError(googleError || "Failed to sign up with Google.");
+      console.error("Google Sign-Up Error:", err); // Log the error object for debugging
+      setError(googleError || "Failed to sign up with Google."); // Display the error message
     } finally {
       setLoading(false); // Stop loading after the process
     }
   };
-
+  
   return (
     <div>
       <h2>Sign Up</h2>
